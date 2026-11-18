@@ -72,6 +72,47 @@ class TestStringUtils(unittest.TestCase):
         self.assertLess(kb_value, 1024.0)
 
 
+class TestProcessPickleFile(unittest.TestCase):
+    """process_pickle_file must never unpickle uploaded data"""
+
+    def setUp(self):
+        import tempfile
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmpdir.cleanup)
+
+    def _write(self, name, data):
+        path = os.path.join(self.tmpdir.name, name)
+        with open(path, 'wb') as f:
+            f.write(data)
+        return path
+
+    def test_json_content_is_parsed(self):
+        from utils.file_handler import process_pickle_file
+        path = self._write('ok.pkl', b'{"a": 1, "b": [1, 2]}')
+        self.assertEqual(process_pickle_file(path), {'a': 1, 'b': [1, 2]})
+
+    def test_malicious_pickle_is_not_executed(self):
+        import pickle
+        from utils.file_handler import process_pickle_file
+
+        marker = os.path.join(self.tmpdir.name, 'pwned')
+
+        class Evil:
+            def __reduce__(self):
+                return (open, (marker, 'w'))
+
+        path = self._write('evil.pkl', pickle.dumps(Evil()))
+        result = process_pickle_file(path)
+
+        self.assertIn('error', result)
+        self.assertFalse(os.path.exists(marker))
+
+    def test_missing_file_returns_error(self):
+        from utils.file_handler import process_pickle_file
+        result = process_pickle_file(os.path.join(self.tmpdir.name, 'nope.pkl'))
+        self.assertIn('error', result)
+
+
 if __name__ == '__main__':
     unittest.main()
 
