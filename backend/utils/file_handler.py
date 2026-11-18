@@ -5,7 +5,7 @@ import hashlib
 from werkzeug.utils import secure_filename
 from config import Config
 import xml.etree.ElementTree as ET
-import pickle
+import json
 try:
     import yaml
 except ImportError:
@@ -73,10 +73,14 @@ def process_xml_file(file_path):
         return {'error': str(e)}
 
 def process_pickle_file(file_path):
-    """Process pickle file"""
+    """Process a .pkl/.pickle upload.
+
+    Pickle is never deserialized because it can execute arbitrary code.
+    The content is parsed as JSON, which only yields plain data types.
+    """
     try:
-        with open(file_path, 'rb') as f:
-            data = pickle.load(f)
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
         return data
     except Exception as e:
         return {'error': str(e)}
