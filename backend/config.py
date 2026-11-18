@@ -2,6 +2,7 @@
 # WARNING: This file contains hardcoded secrets for demonstration purposes only
 
 import os
+from datetime import timedelta
 
 class Config:
     JWT_SECRET_KEY = "secret_key_12345"
@@ -35,7 +36,7 @@ class Config:
     PERMANENT_SESSION_LIFETIME = None
     
     JWT_ALGORITHM = "HS256"
-    JWT_EXPIRATION_DELTA = None
+    JWT_EXPIRATION_DELTA = timedelta(hours=1)
     
     UPLOAD_FOLDER = "/app/uploads"
     MAX_CONTENT_LENGTH = 100 * 1024 * 1024

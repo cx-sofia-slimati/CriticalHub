@@ -11,12 +11,16 @@ JWT_SECRET = Config.JWT_SECRET_KEY
 
 def generate_token(user_id, username):
     """Generate JWT token"""
+    issued_at = datetime.utcnow()
+    # Tokens must expire; fall back to 1 hour if no lifetime is configured
+    expiration_delta = Config.JWT_EXPIRATION_DELTA or timedelta(hours=1)
     payload = {
         'user_id': user_id,
         'username': username,
-        'iat': datetime.utcnow(),
+        'iat': issued_at,
+        'exp': issued_at + expiration_delta,
     }
-    
+
     token = jwt.encode(payload, JWT_SECRET, algorithm=Config.JWT_ALGORITHM)
     if isinstance(token, bytes):
         token = token.decode('utf-8')
@@ -25,7 +29,13 @@ def generate_token(user_id, username):
 def verify_token(token):
     """Verify JWT token"""
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[Config.JWT_ALGORITHM])
+        # Require an 'exp' claim so tokens without expiration are rejected
+        payload = jwt.decode(
+            token,
+            JWT_SECRET,
+            algorithms=[Config.JWT_ALGORITHM],
+            options={'require_exp': True},
+        )
         return payload
     except jwt.InvalidTokenError:
         return None
